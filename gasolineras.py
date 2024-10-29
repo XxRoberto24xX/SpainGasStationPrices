@@ -52,9 +52,9 @@ def obtener_precios_diesel():
 
         # Filtrar por gasolineras en Salamanca de la compañía Repsol
         for gasolinera in datos['ListaEESSPrecio']:
-            if gasolinera["Provincia"].lower() == provincia.lower or provincia == "":
-                if gasolinera["Localidad"].lower() == localidad.lower or localidad == "":
-                    if gasolinera["Rótulo"].lower() == tipoGasolinera.lower or tipoGasolinera == "":
+            if gasolinera["Provincia"].lower() == provincia.lower() or provincia == "":
+                if gasolinera["Localidad"].lower() == localidad.lower() or localidad == "":
+                    if gasolinera["Rótulo"].lower() == tipoGasolinera.lower() or tipoGasolinera == "":
                         #Sacamos la latitud y longitud de la gasolinera para sacar el enlace de googel maps
                         latitud = gasolinera['Latitud'].replace(',', '.')
                         longitud = gasolinera['Longitud (WGS84)'].replace(',', '.')
@@ -66,7 +66,7 @@ def obtener_precios_diesel():
                             'precio': gasolinera[combustible],
                             'enlace_maps': enlace_google_maps
                         })
-                    elif tipoGasolinera.lower == "repsol" and gasolinera["Rótulo"].lower() == "campsa":
+                    elif tipoGasolinera.lower() == "repsol" and gasolinera["Rótulo"].lower() == "campsa":
                         #Sacamos la latitud y longitud de la gasolinera para sacar el enlace de googel maps
                         latitud = gasolinera['Latitud'].replace(',', '.')
                         longitud = gasolinera['Longitud (WGS84)'].replace(',', '.')

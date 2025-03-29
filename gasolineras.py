@@ -1,12 +1,16 @@
 import requests
 import json
 import os
+from datetime import datetime
 
 # 
 # VARIABLE GLOBALES
 # 
-datos={} # Lista donde almacenaremos todas las gasolineras que nos devuelva el api
+datos = {}  # Lista donde almacenaremos todas las gasolineras que nos devuelva el API
+DIRECTORIO_CACHE = os.path.join(os.path.expanduser("~"), ".gasprice")
+ARCHIVO_CACHE = os.path.join(DIRECTORIO_CACHE, "datos_gasolineras.json")
 
+print(DIRECTORIO_CACHE)
 
 #
 # 
@@ -14,21 +18,47 @@ datos={} # Lista donde almacenaremos todas las gasolineras que nos devuelva el a
 # 
 # 
 def primera_conexion():
-# Accedemos al servicio REST y recogemos la respuesta que este nos devuelva
+    # Crear el directorio de cache si no existe
+    if not os.path.exists(DIRECTORIO_CACHE):
+        os.makedirs(DIRECTORIO_CACHE)
+
+    # Verificar si ya existe un archivo con datos del día actual
+    if os.path.exists(ARCHIVO_CACHE):
+        with open(ARCHIVO_CACHE, "r", encoding="utf-8") as archivo:
+            global datos
+            datos = json.load(archivo)
+            fecha_cache = datos["Fecha"]
+            fecha_cache = fecha_cache.split(" ")[0]  # Obtener solo la fecha sin la hora
+            if fecha_cache == datetime.now().strftime("%d/%m/%Y"):
+                print("Datos cargados desde la caché.")
+                introduccion_de_datos()
+                return
+            
+    print("No se encontró caché, obteniendo datos del API.")
+
+    # Accedemos al servicio REST y recogemos la respuesta que este nos devuelva
     url = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/"
-    respuesta = requests.get(url)
+    
+    try:
+        respuesta = requests.get(url, timeout=10)
 
-    # Comenzamos la ejecución del programa si la restpuesta que se nos devuelve es correcta
-    if respuesta.status_code == 200:
-        # Convertir la respuesta JSON en un diccionario
-        global datos
-        datos = respuesta.json()
+        # Comenzamos la ejecución del programa si la respuesta que se nos devuelve es correcta
+        if respuesta.status_code == 200:
+            # Convertir la respuesta JSON en un diccionario
+            datos = respuesta.json()
 
-        # Pedimos al usuario que acote la busqueda segun sus necesidades
-        introduccion_de_datos()
-    else:
-        print(f"Error al consultar la API. Código de estado: {respuesta.status_code}")
-        input("pulsa cualquier letra para acabar.......")
+            # Guardar los datos en un archivo JSON con la fecha actual
+            with open(ARCHIVO_CACHE, "w", encoding="utf-8") as archivo:
+                json.dump(datos, archivo, ensure_ascii=False, indent=4)
+
+            print("Datos obtenidos del API y guardados en la caché.")
+            introduccion_de_datos()
+        else:
+            print(f"Error al consultar la API. Código de estado: {respuesta.status_code}")
+            input("Pulsa cualquier tecla para finalizar...")
+    except requests.RequestException as e:
+        print(f"Error al conectar con el API: {e}")
+        input("Pulsa cualquier tecla para finalizar...")
 
 # 
 # 
@@ -88,7 +118,7 @@ def introduccion_de_datos():
 def obterner_precios(provincia, localidad, tipoGasolinera, combustible):
     # Inicializamos una lista en la que guardar los resultados
     lista_gasolineras=[]
-
+    
     # Filtrar por gasolineras en Salamanca de la compañía Repsol  --> como python usa short-circuit evaluation ponemos primero el caso de que el campo de filtrado este vacio
     for gasolinera in datos['ListaEESSPrecio']:
         if provincia == "" or gasolinera["Provincia"].lower() == provincia.lower():

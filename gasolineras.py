@@ -10,7 +10,6 @@ datos = {}  # Lista donde almacenaremos todas las gasolineras que nos devuelva e
 DIRECTORIO_CACHE = os.path.join(os.path.expanduser("~"), ".gasprice")
 ARCHIVO_CACHE = os.path.join(DIRECTORIO_CACHE, "datos_gasolineras.json")
 
-print(DIRECTORIO_CACHE)
 
 #
 # 
@@ -30,11 +29,8 @@ def primera_conexion():
             fecha_cache = datos["Fecha"]
             fecha_cache = fecha_cache.split(" ")[0]  # Obtener solo la fecha sin la hora
             if fecha_cache == datetime.now().strftime("%d/%m/%Y"):
-                print("Datos cargados desde la caché.")
                 introduccion_de_datos()
                 return
-            
-    print("No se encontró caché, obteniendo datos del API.")
 
     # Accedemos al servicio REST y recogemos la respuesta que este nos devuelva
     url = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/"
@@ -51,7 +47,6 @@ def primera_conexion():
             with open(ARCHIVO_CACHE, "w", encoding="utf-8") as archivo:
                 json.dump(datos, archivo, ensure_ascii=False, indent=4)
 
-            print("Datos obtenidos del API y guardados en la caché.")
             introduccion_de_datos()
         else:
             print(f"Error al consultar la API. Código de estado: {respuesta.status_code}")

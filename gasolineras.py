@@ -1,7 +1,8 @@
-import requests
+from curl_cffi import requests
 import json
 import os
 from datetime import datetime
+import time
 
 # 
 # VARIABLE GLOBALES
@@ -35,26 +36,52 @@ def primera_conexion():
     # Accedemos al servicio REST y recogemos la respuesta que este nos devuelva
     url = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/"
     
-    try:
-        respuesta = requests.get(url, timeout=10)
+    headers = {
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+        "Connection": "keep-alive",
+        "DNT": "1",
+        "Host": "sedeaplicaciones.minetur.gob.es",
+        "Sec-Ch-Ua": '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+        "X-Requested-With": "XMLHttpRequest"
+    }
+        
+    max_reintentos = 3
+    for intento in range(max_reintentos):
+        try:
+            respuesta = requests.get(
+                url,
+                headers=headers,
+                impersonate="chrome110"  # Imita perfectamente a Chrome
+            )
 
-        # Comenzamos la ejecución del programa si la respuesta que se nos devuelve es correcta
-        if respuesta.status_code == 200:
-            # Convertir la respuesta JSON en un diccionario
-            datos = respuesta.json()
+            # Comenzamos la ejecución del programa si la respuesta que se nos devuelve es correcta
+            if respuesta.status_code == 200:
+                # Convertir la respuesta JSON en un diccionario
+                datos = respuesta.json()
 
-            # Guardar los datos en un archivo JSON con la fecha actual
-            with open(ARCHIVO_CACHE, "w", encoding="utf-8") as archivo:
-                json.dump(datos, archivo, ensure_ascii=False, indent=4)
+                # Guardar los datos en un archivo JSON con la fecha actual
+                with open(ARCHIVO_CACHE, "w", encoding="utf-8") as archivo:
+                    json.dump(datos, archivo, ensure_ascii=False, indent=4)
 
-            introduccion_de_datos()
-        else:
-            print(f"Error al consultar la API. Código de estado: {respuesta.status_code}")
-            input("Pulsa cualquier tecla para finalizar...")
-    except requests.RequestException as e:
-        print(f"Error al conectar con el API: {e}")
-        input("Pulsa cualquier tecla para finalizar...")
-
+                introduccion_de_datos()
+            else:
+                print(f"Error al consultar la API. Código de estado: {respuesta.status_code}")
+                input("Pulsa cualquier tecla para finalizar...")
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                print(f"Intento {intento + 1} fallido: {e}")
+                if intento < max_reintentos - 1:
+                    time.sleep(5)  # Espera 5 segundos antes de reintentar
+                else:
+                    print("Demasiados intentos fallidos. Verifica tu conexión o la disponibilidad de la API.")
+                    input("Pulsa cualquier tecla para finalizar...")
+                    exit()
 # 
 # 
 # PEDIDA DE DATOS AL USUARIO PARA PERSONALIZAR LA BUSQUEDA 

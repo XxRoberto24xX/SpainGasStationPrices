@@ -13,6 +13,42 @@ ARCHIVO_CACHE = os.path.join(DIRECTORIO_CACHE, "datos_gasolineras.json")
 
 
 #
+# VERIFICACION DE LA VALIDEZ TEMPORAL DE LOS DATOS
+#
+def isDatosActulalizados(fecha_hora_str):
+    # Parsear la fecha y hora del cache
+    try:
+        fecha_str, hora_str = fecha_hora_str.split(" ")
+        dia, mes, anio = map(int, fecha_str.split("/"))
+        hora, minuto, segundo = map(int, hora_str.split(":"))
+        
+        fecha_hora_cache = datetime(anio, mes, dia, hora, minuto, segundo)
+        ahora = datetime.now()
+        
+        # Verificar si es el mismo día
+        if fecha_hora_cache.date() != ahora.date():
+            return False
+            
+        # Calcular diferencia de tiempo
+        diferencia = ahora - fecha_hora_cache
+        diferencia_minutos = diferencia.total_seconds() / 60
+        
+        # Si han pasado menos de 30 minutos y estamos en el mismo intervalo de actualización
+        if diferencia_minutos < 30:
+            # Verificar si ambos momentos están en el mismo intervalo de 30 minutos
+            # (ambos antes o después de la media hora)
+            cache_interval = fecha_hora_cache.minute // 30
+            ahora_interval = ahora.minute // 30
+            
+            if cache_interval == ahora_interval:
+                return True
+        
+        return False
+    except:
+        return False
+
+
+#
 # 
 # CONEXIÓN CON EL SERVIDOR Y OBTENCIÓN DE LA INFORMACIÓN 
 # 
@@ -27,11 +63,13 @@ def primera_conexion():
         with open(ARCHIVO_CACHE, "r", encoding="utf-8") as archivo:
             global datos
             datos = json.load(archivo)
-            fecha_cache = datos["Fecha"]
-            fecha_cache = fecha_cache.split(" ")[0]  # Obtener solo la fecha sin la hora
-            if fecha_cache == datetime.now().strftime("%d/%m/%Y"):
+            fecha_hora_cache = datos["Fecha"]
+            if isDatosActulalizados(fecha_hora_cache):
+                print("Datos recuperados de Cache")
                 introduccion_de_datos()
                 return
+            else:
+                print("Obteniendo datos del api")
 
     # Accedemos al servicio REST y recogemos la respuesta que este nos devuelva
     url = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/"
@@ -184,7 +222,7 @@ def finalizacion_busqueda():
     print()
     print("Busque finalizada, ¿desea realizar otra consulta?: ")
     print("S) Si")
-    print("N) No, cerra la aplicación")
+    print("N) No, cerrar la aplicación")
 
     opcion = input("Selecciona una opción: ")
 
@@ -193,7 +231,7 @@ def finalizacion_busqueda():
             os.system('cls' if os.name == 'nt' else 'clear')
             introduccion_de_datos()
         case "N":
-            exit
+            exit()
         case _:
             os.system('cls' if os.name == 'nt' else 'clear')
             print("La opción seleccionada no se encuentra entre las disponibles")
